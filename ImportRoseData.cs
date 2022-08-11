@@ -7,21 +7,17 @@ using Linear_Engine.DTO;
 
 namespace Linear_Engine
 {
-    public class ImportRoseData
+    public static class ImportRoseData
     {
-        private RoseDto roseDto { get; set; }
-
-        public async Task<RoseDto> RetrieveTableFieldnames(string tablePath, string tableName, ImportTableFormat tableFormat)
+        public async static Task<RoseDto> RetrieveTableFieldnames(RoseDto roseDto)
         {
-            roseDto = new RoseDto();
 
-            roseDto.tablePath = tablePath;
             roseDto.tableIsValid = true;
-            roseDto.tableName = tableName;
+
 
             if (roseDto.tableIsValid)
             {
-                roseDto.tableData = new ImportTableFields();
+                roseDto.tableFields = new ImportTableFields();
 
                 roseDto.fields = new List<string>();
 
@@ -29,18 +25,18 @@ namespace Linear_Engine
 
                 bool bCSV = true;
 
-                switch (tableFormat)
+                switch (roseDto.tableFormat)
                 {
 
                     case ImportTableFormat.text_csv:
                         {
-                            roseFields = await RetrieveFieldnames(true);
+                            roseFields = await RetrieveFieldnames(true, roseDto);
                             break;
                         }
 
                     case ImportTableFormat.text_txt:
                         {
-                            roseFields = await RetrieveFieldnames(false);
+                            roseFields = await RetrieveFieldnames(false, roseDto);
 
                             break;
                         }
@@ -60,61 +56,61 @@ namespace Linear_Engine
                 }
 
                 int index = 0;
-                int fieldIncrement = 3;
+                int fieldIncrement = 4;
 
-                if (roseDto.fields[0].ToUpper() == "OBJECTID")
-                {
-                    index = index + 1;
-                    fieldIncrement = fieldIncrement + 1;
-                }
+                //if (roseDto.fields[0].ToUpper() == "OBJECTID")
+               // {
+                    //index = index + 1;
+                    //fieldIncrement = fieldIncrement + 1;
+                //}
 
                 if (roseDto.fields.Count < fieldIncrement)
                     throw new Exception("Problem with fields in Rose table. Minimum of 3 fields required");
 
-                //BHID
-                roseDto.tableData.Add(new ImportTableField
+                //OID
+                roseDto.tableFields.Add(new ImportTableField
                 {
                     columnHeader = roseDto.fields[index],
-                    columnImportAs = "OID",
-                    groupName = "Mandatory Fields",
-                    columnImportName = "Row ID",
+                    columnImportAs = RoseConstants.recID,
+                    groupName = RoseConstants.GroupMapFields,
+                    columnImportName = RoseConstants.recIDName,
                     genericType = false,
-                    fieldType = "Text",
+                    fieldType = "Integer",
                     keys = new KeyValuePair<bool, bool>(true, false) //Primary key
                 });
 
                 index++;
                 //X
-                roseDto.tableData.Add(new ImportTableField
+                roseDto.tableFields.Add(new ImportTableField
                 {
                     columnHeader = roseDto.fields[index],
-                    columnImportAs = "X",
-                    groupName = "Mandatory Fields",
-                    columnImportName = "Easting",
+                    columnImportAs = RoseConstants.x,
+                    groupName = RoseConstants.GroupMapFields,
+                    columnImportName = RoseConstants.xName,
                     genericType = false,
                     fieldType = "Double",
                     keys = new KeyValuePair<bool, bool>(false, false)
                 });
                 index++;
                 //Y
-                roseDto.tableData.Add(new ImportTableField
+                roseDto.tableFields.Add(new ImportTableField
                 {
                     columnHeader = roseDto.fields[index],
-                    columnImportAs = "Y",
-                    groupName = "Mandatory Fields",
-                    columnImportName = "Northing",
+                    columnImportAs = RoseConstants.y,
+                    groupName = RoseConstants.GroupMapFields,
+                    columnImportName = RoseConstants.yName,
                     genericType = false,
                     fieldType = "Double",
                     keys = new KeyValuePair<bool, bool>(false, false)
                 });
                 index++;
-                //Z
-                roseDto.tableData.Add(new ImportTableField
+                //Orient
+                roseDto.tableFields.Add(new ImportTableField
                 {
                     columnHeader = roseDto.fields[index],
-                    columnImportAs = "Orient",
-                    groupName = "Mandatory Fields",
-                    columnImportName = "Orientation",
+                    columnImportAs = RoseConstants.orient,
+                    groupName = RoseConstants.GroupMapFields,
+                    columnImportName = RoseConstants.orientName,
                     genericType = false,
                     fieldType = "Double",
                     keys = new KeyValuePair<bool, bool>(false, false)
@@ -123,12 +119,12 @@ namespace Linear_Engine
 
                 for (int i = fieldIncrement; i < roseDto.fields.Count; i++)
                 {
-                    roseDto.tableData.Add(new ImportTableField
+                    roseDto.tableFields.Add(new ImportTableField
                     {
                         columnHeader = roseDto.fields[i],
                         columnImportName = roseDto.fields[i],
                         columnImportAs = "Not Imported",
-                        groupName = "Other Fields",
+                        groupName = RoseConstants.GroupOtherFields,
                         genericType = true,
                         fieldType = "Text",
                         keys = new KeyValuePair<bool, bool>(false, false)
@@ -139,7 +135,7 @@ namespace Linear_Engine
             return roseDto;
         }
 
-        private async Task<List<string>> RetrieveFieldnames(bool bCSV)
+        private async static Task<List<string>> RetrieveFieldnames(bool bCSV, RoseDto roseDto)
         {
             List<string> roseFields = new List<string>();
 
@@ -159,6 +155,11 @@ namespace Linear_Engine
                 while (!reader.EndOfStream)
                 {
                     var line = reader.ReadLine();
+
+                    if (line == null)
+                        break;
+
+                    
                     var values = line.Split(delimiter);
 
                     //first row only for columns

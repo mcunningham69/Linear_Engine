@@ -13,8 +13,10 @@ namespace Linear_Engine.DTO
         public ImportTableFormat tableFormat { get; set; }
         public bool tableIsValid { get; set; }
         public List<string> fields { get; set; }
-        public ImportTableFields tableData { get; set; }
+        public ImportTableFields tableFields { get; set; }
         public string roseKey { get; set; }
+        public RoseType roseType { get; set; }
+        public RoseGeom geomType { get; set; }
 
     }
 }
