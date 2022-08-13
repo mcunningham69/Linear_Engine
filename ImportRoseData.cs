@@ -90,7 +90,7 @@ namespace Linear_Engine
             roseDto.tableFields.Add(new ImportTableField
             {
                 columnHeader = roseDto.fields[index],
-                columnImportAs = RoseConstants.Startx,
+                columnImportAs = RoseConstants.Coord,
                 groupName = RoseConstants.GroupMapFields,
                 columnImportName = RoseConstants.xStartName,
                 genericType = false,
@@ -102,7 +102,7 @@ namespace Linear_Engine
             roseDto.tableFields.Add(new ImportTableField
             {
                 columnHeader = roseDto.fields[index],
-                columnImportAs = RoseConstants.Starty,
+                columnImportAs = RoseConstants.Coord,
                 groupName = RoseConstants.GroupMapFields,
                 columnImportName = RoseConstants.yStartName,
                 genericType = false,
@@ -141,7 +141,7 @@ namespace Linear_Engine
         private async static void PopulateLineFields(RoseDto roseDto)
         {
             int index = 0;
-            int fieldIncrement = 6;
+            int fieldIncrement = 7;
 
             if (roseDto.fields.Count < fieldIncrement)
                 throw new Exception("Problem with fields in Rose table. Minimum of 5 fields required");
@@ -163,7 +163,7 @@ namespace Linear_Engine
             roseDto.tableFields.Add(new ImportTableField
             {
                 columnHeader = roseDto.fields[index],
-                columnImportAs = RoseConstants.Startx,
+                columnImportAs = RoseConstants.Coord,
                 groupName = RoseConstants.GroupMapFields,
                 columnImportName = RoseConstants.xStartName,
                 genericType = false,
@@ -175,7 +175,7 @@ namespace Linear_Engine
             roseDto.tableFields.Add(new ImportTableField
             {
                 columnHeader = roseDto.fields[index],
-                columnImportAs = RoseConstants.Starty,
+                columnImportAs = RoseConstants.Coord,
                 groupName = RoseConstants.GroupMapFields,
                 columnImportName = RoseConstants.yStartName,
                 genericType = false,
@@ -187,7 +187,7 @@ namespace Linear_Engine
             roseDto.tableFields.Add(new ImportTableField
             {
                 columnHeader = roseDto.fields[index],
-                columnImportAs = RoseConstants.Endx,
+                columnImportAs = RoseConstants.Coord,
                 groupName = RoseConstants.GroupMapFields,
                 columnImportName = RoseConstants.xEndName,
                 genericType = false,
@@ -199,7 +199,7 @@ namespace Linear_Engine
             roseDto.tableFields.Add(new ImportTableField
             {
                 columnHeader = roseDto.fields[index],
-                columnImportAs = RoseConstants.Endy,
+                columnImportAs = RoseConstants.Coord,
                 groupName = RoseConstants.GroupMapFields,
                 columnImportName = RoseConstants.yEndName,
                 genericType = false,
@@ -212,8 +212,20 @@ namespace Linear_Engine
             {
                 columnHeader = roseDto.fields[index],
                 columnImportAs = RoseConstants.orient,
-                groupName = RoseConstants.GroupMapFields,
+                groupName = RoseConstants.GroupOtherFields,
                 columnImportName = RoseConstants.orientName,
+                genericType = false,
+                fieldType = "Double",
+                keys = new KeyValuePair<bool, bool>(false, false)
+            });
+            index++;
+            //Orient
+            roseDto.tableFields.Add(new ImportTableField
+            {
+                columnHeader = roseDto.fields[index],
+                columnImportAs = RoseConstants.length,
+                groupName = RoseConstants.GroupOtherFields,
+                columnImportName = RoseConstants.lengthName,
                 genericType = false,
                 fieldType = "Double",
                 keys = new KeyValuePair<bool, bool>(false, false)

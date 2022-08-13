@@ -9,11 +9,13 @@ namespace Linear_Engine
     public class RoseConstants
     {
         public const string recID = "Row ID";
-        public const string Startx = "StartX";
-        public const string Starty = "StartY";
+        public const string Coord = "Coordinate";
+        //public const string Startx = "StartX";
+        //public const string Starty = "StartY";
+        //public const string Endx = "EndX";
+        //public const string Endy = "EndY";
         public const string orient = "Orientation";
-        public const string Endx = "EndX";
-        public const string Endy = "EndY";
+        public const string length = "Length";
 
 
         //label for combobox
@@ -38,6 +40,7 @@ namespace Linear_Engine
         public const string xEndName = "X2";
         public const string yEndName = "Y2";
         public const string orientName = "Orient";
+        public const string lengthName = "Length";
 
         //Grouping
         public const string GroupMapFields = "Mandatory Fields";

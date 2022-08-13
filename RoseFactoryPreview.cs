@@ -24,10 +24,10 @@ namespace Linear_Engine
 
 
         public async Task<FlapParameters> PrepareInputForProcessing(List<LinearValues> orientValues, CellExtent customEnvelope, int subCellsize,
-    int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional, string fieldName)
+    int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional, string fieldName, RoseType roseType, RoseGeom roseGeom)
         {
             return await _factoryType.PrepareInputForProcessing(orientValues, customEnvelope, subCellsize, nInterval,
-                selectedFeatures, rose, bRegional, fieldName);
+                selectedFeatures, rose, bRegional, fieldName, roseType, roseGeom);
         }
 
         public async Task<bool> CalculateValues(FlapParameters _parameters)
@@ -47,24 +47,6 @@ namespace Linear_Engine
             return message;
         }
 
-        /*
-
-         public async Task<FeatureClass> CreateFeatureClass(string suffix, string roseName, bool bExists, string databasePath,
-     FeatureLayer InputLayer, bool bStatistics, RoseGeom roseGeom, SpatialReference thisSpatRef)
-         {
-             return await _factoryType.CreateFeatureClass(suffix, roseName, bExists, databasePath, InputLayer,
-                 bStatistics, roseGeom, thisSpatRef);
-
-         }
-
-         public async Task<string> SaveAsVectorFeatures(FeatureClass OuputFeatureClass, SpatialReference mySpatialRef,
-             FlapParameters _parameters, bool bExtentOnly)
-         {
-             return await _factoryType.SaveAsVectorFeatures(OuputFeatureClass, mySpatialRef, _parameters, bExtentOnly);
-         }
-
-
-         */
     }
 
     //abstract class 
@@ -89,8 +71,9 @@ namespace Linear_Engine
         }
 
 
+        #region Abstract methods
         public abstract Task<FlapParameters> PrepareInputForProcessing(List<LinearValues> orientValues, CellExtent customEnvelope, int subCellsize,
-    int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional, string fieldName);
+    int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional, string fieldName, RoseType roseType, RoseGeom roseGeom);
 
         public abstract Task<bool> CalculateValues(FlapParameters _parameters);
 
@@ -104,85 +87,160 @@ namespace Linear_Engine
              FlapParameters _parameters, bool bExtentOnly);
 
          */
+        #endregion
     }
 
     public class RoseCellPlots : TypeOfAnalysis
     {
 
         public override async Task<FlapParameters> PrepareInputForProcessing(List<LinearValues> orientValues, CellExtent customEnvelope, int subCellsize,
-    int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional, string fieldName)
+    int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional, string fieldName, RoseType roseType, RoseGeom roseGeom)
         {
             int cellID = 1;
 
             //calculate centre of cell
             customEnvelope.CentreOfCell();
 
-            FlapParameters regionalRose = new FlapParameters
+            FlapParameters subCellsRose = new FlapParameters
             {
                 Interval = nInterval,
+                SubCellsize = subCellsize,
                 SelectedFeatures = selectedFeatures,
-                flapParameters = new List<FlapParameter>()
+                flapParameters = new List<FlapParameter>(),
+                _RoseType = roseType,
+                _RoseGeom = roseGeom,
+                RangeFrom = 0,
+                RangeTo = 0,
+                NoOfColumns = (int)Math.Abs(customEnvelope.CellWidth / subCellsize),
+                NoOfRows = (int)Math.Abs(customEnvelope.CellHeight / subCellsize)
             };
 
-            regionalRose.flapParameters.Add(new FlapParameter
-            {
-                CentreX = customEnvelope.CentreX,
-                CentreY = customEnvelope.CentreY,
-                CreateCell = true,  //default
-                ExtentArea = customEnvelope.CellArea,
-                ExtentHeight = customEnvelope.CellHeight,
-                ExtentWidth = customEnvelope.CellWidth,
-                XMin = customEnvelope.MinX,
-                XMax = customEnvelope.MaxX,
-                YMin = customEnvelope.MinY,
-                YMax = customEnvelope.MaxY,
-                CellID = cellID
-            });
+            double dblMinX = Math.Floor(customEnvelope.MinX);
+            double dblMaxY = Math.Floor(customEnvelope.MaxY);
+            double dblMaxX = dblMinX + subCellsize;
+            double dblMinY = dblMaxY - subCellsize;
 
-            foreach (var val in orientValues)
+            double dblCentreX = dblMinX + ((dblMaxX - dblMinX) / 2);
+            double dblCentreY = dblMinY + ((dblMaxY - dblMinY) / 2);
+
+            for (int y = 0; y < subCellsRose.NoOfRows; y++)
             {
-                regionalRose.flapParameters.Last().LenAzi.Add(new FreqLen
+                for (int x = 0; x < subCellsRose.NoOfColumns; x++)
                 {
-                    Azimuth = val.Direction,
-                    Length = 0.0
-                });
+                    CellExtent localExtent = new CellExtent{
+                        MinX = dblMinX,
+                        MinY = dblMinY,
+                        MaxX = dblMaxX,
+                        MaxY =  dblMaxY,
+                        CellWidth = subCellsize,
+                        CellHeight = subCellsize,
+                        CellArea = subCellsize * subCellsize
+                    };
+
+            subCellsRose.flapParameters.Add(new FlapParameter
+                    {
+                        CentreX = dblCentreX,
+                        CentreY = dblCentreY,
+                        CreateCell = true,  //default
+                        ExtentArea = subCellsize * subCellsize,
+                        ExtentHeight = subCellsize,
+                        ExtentWidth = subCellsize,
+                        XMin = dblMinX,
+                        XMax = dblMaxX,
+                        YMin = dblMinY,
+                        YMax = dblMaxY,
+                        CellID = cellID
+
+                    });
+
+                    subCellsRose.flapParameters.Last().CellID = cellID;
+
+                    int featCount = 0;
+
+                    //Query within extent
+                    List<LinearValues> subSelValues = await ReturnPointFeautresWithinExtent(localExtent, orientValues);
+                    featCount = subSelValues.Count;
+
+                    if (featCount > 0)
+                    {
+                        subCellsRose.flapParameters.Last().CreateCell = true;
+                        subCellsRose.flapParameters.Last().Count = featCount;
+
+                        await PopulateAziLenArray(roseType, orientValues, subCellsRose.flapParameters.Last());
+                    }
+                    else
+                    {
+                        subCellsRose.flapParameters.Last().CreateCell = false;
+                    }
+
+                    cellID++;
+
+                    //CHANGE to X
+                    dblMinX = dblMinX + subCellsize;
+                    dblMaxX = dblMaxX + subCellsize;
+
+                    dblCentreX = dblMinX + ((dblMaxX - dblMinX) / 2);
+                    dblCentreY = dblMinY + ((dblMaxY - dblMinY) / 2);
+                }
+
+                //Reset after changing Y
+                dblMinX = Math.Floor(Math.Floor(customEnvelope.MinX));
+                dblMaxX = dblMinX + subCellsize;
+
+                dblMinY = dblMinY - subCellsize;
+                dblMaxY = dblMaxY - subCellsize;
+
+                dblCentreX = dblMinX + ((dblMaxX - dblMinX) / 2);
+                dblCentreY = dblMinY + ((dblMaxY - dblMinY) / 2);
             }
 
-            return regionalRose;
+            return subCellsRose;
+        }
 
-            /*
-           public override void CalculateVectorValues(FlapParameters _parameters, bool Statistics, RoseType roseType, bool bDirection)
-           {
-               int NoOfElements = 180 / _parameters.Interval;
+        private async Task<string> PopulateAziLenArray(RoseType roseType, List<LinearValues> orientValues, FlapParameter parameter)
+        {
+            if (roseType == RoseType.Frequency)
+            {
+                foreach (var val in orientValues)
+                {
+                    parameter.LenAzi.Add(new FreqLen
+                    {
+                        Azimuth = val.Direction,
+                        Length = 0.0
+                    });
+                }
+            }
+            else
+            {
+                foreach (var val in orientValues)
+                {
+                    parameter.LenAzi.Add(new FreqLen
+                    {
+                        Azimuth = val.Direction,
+                        Length = val.LineLength
+                    });
+                }
+            }
 
-               foreach (FlapParameter parameter in _parameters.flapParameters)
-               {
-                   if (parameter.CreateCell)
-                   {
-                       parameter.Rose = new RoseDiagramParameters();
-                       parameter.Rose.RoseArrayValues(bDirection, NoOfElements, _parameters.Interval, parameter.LenAzi, roseType);
-                       parameter.Rose.CalculateRosePetals(_parameters.Interval, parameter.ExtentWidth, parameter.ExtentHeight);
-                       parameter.Rose.CalculateRoseStatistics(parameter.LenAzi, _parameters.Interval);
-                   }
-               }
-           }
+            return ""; //TODO
+
+        }
+
+        private async Task<List<LinearValues>>ReturnPointFeautresWithinExtent(CellExtent cell, List<LinearValues> orientValues)
+        {
+            List<LinearValues> cellResults = orientValues.Where(a => a.startX > cell.MinX).Where(b => b.endX < cell.MaxX)
+                .Where(c => c.startY < cell.MaxY).Where(d => d.endY > cell.MinY)
+                .Select(b => new LinearValues()
+                {
+                    startX = b.startX,
+                    startY = b.startY,
+                    endX = b.endX,
+                    endY = b.endY,
+                    Direction = b.Direction
+                }).ToList();
 
 
-
-           public override async Task<string> SaveAsVectorFeatures(FeatureClass OuputFeatureClass,
-               SpatialReference mySpatialRef, FlapParameters _parameters, bool bExtentOnly)
-           {
-               return await VectorFunctions.SaveRoseToVectorFeatures(OuputFeatureClass, mySpatialRef, _parameters);
-           }
-
-           public override async Task<FeatureClass> CreateFeatureClass(string suffix, string roseName, bool bExists,
-               string databasePath, FeatureLayer InputLayer, bool bStatistics, RoseGeom roseGeom, SpatialReference thisSpatRef)
-           {
-               return await VectorFunctions.CreateRoseNetFeatClass(suffix, roseName, bExists, databasePath, InputLayer,
-               bStatistics, roseGeom, false, thisSpatRef);
-           }
-
-           */
+            return cellResults;
         }
 
         public override async Task<bool> CalculateValues(FlapParameters _parameters)
@@ -250,7 +308,7 @@ namespace Linear_Engine
     public class RoseRegionalPlot : TypeOfAnalysis
     {
         public override async Task<FlapParameters> PrepareInputForProcessing(List<LinearValues> orientValues, CellExtent customEnvelope, int subCellsize,
-int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional, string fieldName)
+int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional, string fieldName, RoseType roseType, RoseGeom roseGeom)
         {
             int cellID = 1;
 
@@ -261,8 +319,9 @@ int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional
             {
                 Interval = nInterval,
                 SelectedFeatures = selectedFeatures,
-                flapParameters = new List<FlapParameter>()
-
+                flapParameters = new List<FlapParameter>(),
+                _RoseType = roseType,
+                _RoseGeom = roseGeom
             };
 
             regionalRose.flapParameters.Add(new FlapParameter
@@ -281,13 +340,27 @@ int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional
                 Rose = rose
             });
 
-            foreach (var val in orientValues)
+            if (regionalRose._RoseType == RoseType.Frequency)
             {
-                regionalRose.flapParameters.Last().LenAzi.Add(new FreqLen
+                foreach (var val in orientValues)
                 {
-                    Azimuth = val.Direction,
-                    Length = 0.0
-                });
+                    regionalRose.flapParameters.Last().LenAzi.Add(new FreqLen
+                    {
+                        Azimuth = val.Direction,
+                        Length = 0.0
+                    });
+                }
+            }
+            else
+            {
+                foreach (var val in orientValues)
+                {
+                    regionalRose.flapParameters.Last().LenAzi.Add(new FreqLen
+                    {
+                        Azimuth = val.Direction,
+                        Length = val.LineLength
+                    });
+                }
             }
 
             return regionalRose;

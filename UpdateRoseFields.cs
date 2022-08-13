@@ -27,10 +27,10 @@ namespace Linear_Engine
                                                 fieldType = column.fieldType,
                                                 keys = column.keys
                                             }).SingleOrDefault();
-
+          
             switch (changeTo)
             {
-                case RoseConstants.recID:
+                case RoseConstants.recIDName:
                     {
                         try
                         {
@@ -46,64 +46,65 @@ namespace Linear_Engine
 
                         break;
                     }
-                case RoseConstants.Startx:
+                case RoseConstants.xStartName:
                     {
+
                         try
                         {
-                            UpdateMandatoryFields(previousSelection, RoseConstants.Startx,
+                            UpdateMandatoryFields(previousSelection, RoseConstants.Coord,
                             RoseConstants.xStartName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                             false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
                         catch
                         {
-                            UpdateOptionalFields(RoseConstants.xStartName, RoseConstants.Startx, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            UpdateOptionalFields(RoseConstants.xStartName, RoseConstants.Coord, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
                         break;
                     }
-                case RoseConstants.Starty:
+                case RoseConstants.yStartName:
                     {
                         try
                         {
-                            UpdateMandatoryFields(previousSelection, RoseConstants.Starty,
+                            UpdateMandatoryFields(previousSelection, RoseConstants.Coord,
                                 RoseConstants.yStartName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
                         catch
                         {
-                            UpdateOptionalFields(RoseConstants.yStartName, RoseConstants.Starty, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            UpdateOptionalFields(RoseConstants.yStartName, RoseConstants.Coord, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
 
                         break;
 
                     }
-                case RoseConstants.Endx:
+                case RoseConstants.xEndName:
                     {
                         try
                         {
-                            UpdateMandatoryFields(previousSelection, RoseConstants.Endx,
-                            RoseConstants.xStartName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            UpdateMandatoryFields(previousSelection, RoseConstants.Coord,
+                            RoseConstants.xEndName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                             false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
                         catch
                         {
-                            UpdateOptionalFields(RoseConstants.xEndName, RoseConstants.Endx, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            UpdateOptionalFields(RoseConstants.xEndName, RoseConstants.Coord, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
                         break;
                     }
-                case RoseConstants.Endy:
+                case RoseConstants.yEndName:
                     {
                         try
                         {
-                            UpdateMandatoryFields(previousSelection, RoseConstants.Endy,
+                            UpdateMandatoryFields(previousSelection, RoseConstants.Coord,
                                 RoseConstants.yEndName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
                         catch
                         {
-                            UpdateOptionalFields(RoseConstants.yEndName, RoseConstants.Endy, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            UpdateOptionalFields(RoseConstants.yEndName, RoseConstants.Coord, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
 
@@ -121,6 +122,23 @@ namespace Linear_Engine
                         catch
                         {
                             UpdateOptionalFields(RoseConstants.orientName, RoseConstants.orient, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                                false, "Double", new KeyValuePair<bool, bool>(false, false));
+                        }
+
+                        break;
+                    }
+
+                case RoseConstants.length:
+                    {
+                        try
+                        {
+                            UpdateMandatoryFields(previousSelection, RoseConstants.length,
+                                RoseConstants.lengthName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                                false, "Double", new KeyValuePair<bool, bool>(false, false));
+                        }
+                        catch
+                        {
+                            UpdateOptionalFields(RoseConstants.lengthName, RoseConstants.orient, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
 

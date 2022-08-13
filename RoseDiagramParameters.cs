@@ -179,7 +179,7 @@ namespace Linear_Engine
 
             }
 
-            if (!bDirection)
+            if (!bDirection)  //Create symmetry
             {
                 int nIncrement = NoOfElements;
 
@@ -273,12 +273,14 @@ namespace Linear_Engine
             return "";
         }
 
-        public string SubcellErrorChecking(string strInterval)
+        public async Task< string> SubcellErrorChecking(string strCell)
         {
-            if (!Information.IsNumeric(strInterval))
+            if (!Information.IsNumeric(strCell))
             {
                 return "The value must be an integer";
             }
+
+            //TODO - check not larger than regional extent
 
             return "";
         }
@@ -294,6 +296,7 @@ namespace Linear_Engine
         public double y1 { get; set; }
         public double x2 { get; set; }
         public double y2 { get; set; }
+
 
     }
 

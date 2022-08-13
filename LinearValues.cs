@@ -20,33 +20,18 @@ namespace Linear_Engine
 
         public LinearValues()
         {
-            startX = 0.0;
-            startY = 0.0;
-            endX = 0.0;
-            endY = 0.0;
-            oid = 0;
-           // Direction = CalcOrient();
-         //   LineLength = CalcLength();
-        
+
 
         }
 
         public LinearValues(int _oid)
         {
-            startX = 0.0;
-            startY = 0.0;
-            endX = 0.0;
-            endY = 0.0;
-            oid = _oid;
-         //   LineAzimuth = CalcOrient();
-         //   LineLength = CalcLength();
 
         }
 
         //return orientation between two points
-        private double CalcOrient()
+        public double CalcOrient()
         {
-
             double dblStartX = startX;
             double dblStartY = startY;
 
@@ -77,7 +62,7 @@ namespace Linear_Engine
         }
    
         //return length between two points
-        private double CalcLength()
+        public double CalcLength()
         {
             double dblStartX = startX;
             double dblStartY = startY;
