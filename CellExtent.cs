@@ -15,6 +15,8 @@ namespace Linear_Engine
         public double CellWidth { get; set; }
         public double CellHeight { get; set; }
         public double CellArea { get; set; }
+        public double CentreX { get; set; }
+        public double CentreY { get; set; }
 
         public async void CellProperties()
         {
@@ -24,6 +26,12 @@ namespace Linear_Engine
                 CellHeight = MaxY - MinY;
                 CellArea = CellWidth * CellHeight;
             }
+        }
+        public async void CentreOfCell()
+        {
+            CentreX = MinX + (CellWidth / 2);
+            CentreY = MinY + (CellHeight / 2);
+
         }
     }
 }

@@ -9,10 +9,14 @@ namespace Linear_Engine
 {
     public static class UpdateRoseFields
     {
-        public static async Task<RoseDto> UpdateImportParameters(RoseDto roseDto, string previousSelection, string changeTo, string searchColumn, string strOldName)
+        public static async Task<bool> UpdateImportParameters(RoseDto roseDto, string previousSelection, string changeTo, string searchColumn, string strOldName)
         {
+            bool bCheck = true;  //to implement
+
+            ImportTableField queryUpdate = new ImportTableField();
+
             //Return row to be updated
-            ImportTableField queryUpdate = (from column in roseDto.tableFields
+            queryUpdate = (from column in roseDto.tableFields
                                             where column.columnHeader == searchColumn
                                             select new ImportTableField
                                             {
@@ -42,32 +46,64 @@ namespace Linear_Engine
 
                         break;
                     }
-                case RoseConstants.x:
+                case RoseConstants.Startx:
                     {
                         try
                         {
-                            UpdateMandatoryFields(previousSelection, RoseConstants.x,
-                            RoseConstants.xName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            UpdateMandatoryFields(previousSelection, RoseConstants.Startx,
+                            RoseConstants.xStartName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                             false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
                         catch
                         {
-                            UpdateOptionalFields(RoseConstants.xName, RoseConstants.x, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            UpdateOptionalFields(RoseConstants.xStartName, RoseConstants.Startx, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
                         break;
                     }
-                case RoseConstants.y:
+                case RoseConstants.Starty:
                     {
                         try
                         {
-                            UpdateMandatoryFields(previousSelection, RoseConstants.y,
-                                RoseConstants.yName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            UpdateMandatoryFields(previousSelection, RoseConstants.Starty,
+                                RoseConstants.yStartName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
                         catch
                         {
-                            UpdateOptionalFields(RoseConstants.yName, RoseConstants.y, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            UpdateOptionalFields(RoseConstants.yStartName, RoseConstants.Starty, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                                false, "Double", new KeyValuePair<bool, bool>(false, false));
+                        }
+
+                        break;
+
+                    }
+                case RoseConstants.Endx:
+                    {
+                        try
+                        {
+                            UpdateMandatoryFields(previousSelection, RoseConstants.Endx,
+                            RoseConstants.xStartName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                            false, "Double", new KeyValuePair<bool, bool>(false, false));
+                        }
+                        catch
+                        {
+                            UpdateOptionalFields(RoseConstants.xEndName, RoseConstants.Endx, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                                false, "Double", new KeyValuePair<bool, bool>(false, false));
+                        }
+                        break;
+                    }
+                case RoseConstants.Endy:
+                    {
+                        try
+                        {
+                            UpdateMandatoryFields(previousSelection, RoseConstants.Endy,
+                                RoseConstants.yEndName, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
+                                false, "Double", new KeyValuePair<bool, bool>(false, false));
+                        }
+                        catch
+                        {
+                            UpdateOptionalFields(RoseConstants.yEndName, RoseConstants.Endy, queryUpdate, roseDto.tableFields, RoseConstants.GroupMapFields,
                                 false, "Double", new KeyValuePair<bool, bool>(false, false));
                         }
 
@@ -90,7 +126,7 @@ namespace Linear_Engine
 
                         break;
                     }
-               
+
 
                 case RoseConstants.notImported:
                     {
@@ -124,7 +160,9 @@ namespace Linear_Engine
 
             }
 
-            return roseDto;
+        
+            return bCheck;
+
         }
 
         public static void UpdateMandatoryFields(string previousSelection, string changeTo, string changeToName,
@@ -337,6 +375,28 @@ namespace Linear_Engine
             }
 
         }
+
+        public static async void ImportAllFieldsAsGeneric(RoseDto roseDto, bool bImport)
+        {
+            if (bImport)
+            {
+                var queryTo = roseDto.tableFields.Where(v => v.columnImportAs == RoseConstants.notImported);
+
+                foreach (var _val in queryTo)
+                {
+                    _val.columnImportAs = RoseConstants._genericName;
+                    _val.columnImportName = _val.columnHeader;
+                    _val.groupName = RoseConstants.GroupOtherFields;
+                    _val.genericType = true;
+                    _val.fieldType = "Text"; //TODO
+                    _val.keys = new KeyValuePair<bool, bool>(false, false);
+                }
+
+            }
+
+            // return roseDto;
+        }
+
 
     }
 }

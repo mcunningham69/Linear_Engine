@@ -17,6 +17,7 @@ namespace Linear_Engine.DTO
         public string roseKey { get; set; }
         public RoseType roseType { get; set; }
         public RoseGeom geomType { get; set; }
+        public System.Xml.Linq.XElement xPreview { get; set; }
 
     }
 }

@@ -8,7 +8,8 @@ namespace Linear_Engine
 {
     public class FlapParameters
     {
-        public string RoseType { get; set; }
+        public RoseType _RoseType { get; set; }
+        public RoseGeom _RoseGeom { get; set; }
         public int SubCellsize { get; set; }
         public int NoOfColumns { get; set; }
         public int NoOfRows { get; set; }
@@ -21,6 +22,10 @@ namespace Linear_Engine
         public int YBlocks { get; set; }
         public int TotalBlocks { get; set; }
         public double SearchWindow { get; set; }
+        public bool Bearing { get; set; }
+        public bool SaveFishnet { get; set; }
+        public bool SaveStatistics { get; set; }
+
         public List<FlapParameter> flapParameters { get; set; }
 
         public FlapParameters()
@@ -111,6 +116,8 @@ namespace Linear_Engine
 
             for (int i = 0; i <= counter - 1; i++)
             {
+
+                this.ArrayValues.Add(0);
 
                 this.ArrayValues.Add(0);
             }

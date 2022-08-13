@@ -41,6 +41,7 @@ namespace Linear_Engine
         public List<double> RoseAzimuth { get; set; } //raw input from lines
         public List<double> RoseLength { get; set; }  //raw input from lines
         public List<BinRangeClass> BinRange { get; set; }
+        public List<RosePetalCoordinates> petals { get; set; }
         #endregion
 
         public RoseDiagramParameters()
@@ -226,6 +227,8 @@ namespace Linear_Engine
             }
         }
 
+
+
         private double ScalePlots(List<double> RoseArray, double ExtentWidth, double ExtentHeight)
         {
             double dblLength = RoseArray.Max(); //greatest length
@@ -242,7 +245,7 @@ namespace Linear_Engine
 
         }
 
-        public string IntervalErrorChecking(string strInterval)
+        public async Task<string> IntervalErrorChecking(string strInterval)
         {
 
             if (strInterval == "")
@@ -279,6 +282,18 @@ namespace Linear_Engine
 
             return "";
         }
+
+    }
+
+    public class RosePetalCoordinates
+    {
+        public int PetalID { get; set; }
+        public double OriginX { get; set; }
+        public double OriginY { get; set; }
+        public double x1 { get; set; }
+        public double y1 { get; set; }
+        public double x2 { get; set; }
+        public double y2 { get; set; }
 
     }
 
