@@ -30,13 +30,16 @@ namespace Linear_Engine
             RoseLength = new List<double>();
         }
 
-        public bool CalculateFishnetStatistics(List<FreqLen> freqLength)
+        public bool CalculateFishnetStatistics(List<FreqLen> freqLength, RoseType roseType, FlapParameter flapParameter)
         {
-
-            Count = freqLength.Count;
-            AziAvg = freqLength.Select(a => a.Azimuth).Average();
-            AziMin = freqLength.Select(a => a.Azimuth).Min();
-            AziMax = freqLength.Select(a => a.Azimuth).Max();
+            flapParameter.FishStats.Count = freqLength.Count;
+            flapParameter.FishStats.AziAvg = freqLength.Select(a => a.Azimuth).Average();
+            flapParameter.FishStats.AziMin = freqLength.Select(a => a.Azimuth).Min();
+            flapParameter.FishStats.AziMax = freqLength.Select(a => a.Azimuth).Max();
+            //Count = freqLength.Count;
+            //AziAvg = freqLength.Select(a => a.Azimuth).Average();
+            //AziMin = freqLength.Select(a => a.Azimuth).Min();
+            //AziMax = freqLength.Select(a => a.Azimuth).Max();
 
             var queryAzi = freqLength.Select(a => a.Azimuth);
 
@@ -47,23 +50,26 @@ namespace Linear_Engine
             }
 
             double sumOfDerivationAverage = sumOfDerivation / Count;
-            AziStd = Math.Sqrt(sumOfDerivationAverage - (AziAvg * AziAvg));
+            flapParameter.FishStats.AziStd = Math.Sqrt(sumOfDerivationAverage - (AziAvg * AziAvg));
+            //AziStd = Math.Sqrt(sumOfDerivationAverage - (AziAvg * AziAvg));
 
-            LenMin = freqLength.Select(a => a.Length).Min();
-            LenMax = freqLength.Select(a => a.Length).Max();
-            LenAvg = freqLength.Select(a => a.Length).Average();
-            TotalLength = freqLength.Select(a => a.Length).Sum();
-
-            var queryLen = freqLength.Select(a => a.Length);
-
-            sumOfDerivation = 0;
-            foreach (double len in queryLen)
+            if (roseType == RoseType.Length)
             {
-                sumOfDerivation += (len) * (len);
-            }
-            sumOfDerivationAverage = sumOfDerivation / Count;
-            LenStd = Math.Sqrt(sumOfDerivationAverage - (LenAvg * LenAvg));
+                flapParameter.FishStats.LenMin = freqLength.Select(a => a.Length).Min();
+                flapParameter.FishStats.LenMax = freqLength.Select(a => a.Length).Max();
+                flapParameter.FishStats.LenAvg = freqLength.Select(a => a.Length).Average();
+                flapParameter.FishStats.TotalLength = freqLength.Select(a => a.Length).Sum();
 
+                var queryLen = freqLength.Select(a => a.Length);
+
+                sumOfDerivation = 0;
+                foreach (double len in queryLen)
+                {
+                    sumOfDerivation += (len) * (len);
+                }
+                sumOfDerivationAverage = sumOfDerivation / Count;
+                flapParameter.FishStats.LenStd = Math.Sqrt(sumOfDerivationAverage - (LenAvg * LenAvg));
+            }
             return true;
 
         }

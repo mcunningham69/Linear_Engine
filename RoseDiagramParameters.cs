@@ -63,7 +63,7 @@ namespace Linear_Engine
             RoseArray = new List<double>();
         }
 
-        public bool CalculateRoseStatistics(List<FreqLen> freqLength, int binSize)
+        public async Task<bool> CalculateRoseStatistics(List<FreqLen> freqLength, int binSize, bool bDirection)
         {
             int nElements = 180 / binSize;
             int lowerRange = 0;
@@ -75,7 +75,18 @@ namespace Linear_Engine
             List<FreqLen> tempList = new List<FreqLen>();
             foreach (FreqLen _value in freqLength)
             {
-                tempList.Add(new FreqLen { Azimuth = _value.Azimuth + 180, Length = _value.Length });
+                double azi = _value.Azimuth;
+
+                if (!bDirection)
+                { 
+                    if (azi > 180)
+                        azi = azi - 180;
+                    else
+                        azi = azi + 180;
+                }
+                
+                //tempList.Add(new FreqLen { Azimuth = _value.Azimuth + 180, Length = _value.Length });
+                tempList.Add(new FreqLen { Azimuth = azi, Length = _value.Length });
             }
 
             freqLength = freqLength.Concat(tempList).ToList();
@@ -147,7 +158,7 @@ namespace Linear_Engine
             return true;
         }
 
-        public void RoseArrayValues(bool bDirection, int NoOfElements, int binSize, List<FreqLen> freqLen, RoseType roseType)
+        public async Task<bool> RoseArrayValues(bool bDirection, int NoOfElements, int binSize, List<FreqLen> freqLen, RoseType roseType)
         {
             int counter = NoOfElements;
 
@@ -191,16 +202,18 @@ namespace Linear_Engine
                 }
             }
 
+            return true;
+
         }
 
-        public void CalculateRosePetals(int nInterval, double ExtentWidth, double ExtentHeight)
+        public async Task<bool> CalculateRosePetals(int nInterval, double ExtentWidth, double ExtentHeight)
         {
             int j2 = RoseArray.Count;
 
             //NEED Extent from envelope or local if not regional rose
 
             //scale roseArray
-            double dblScale = ScalePlots(RoseArray, ExtentWidth, ExtentHeight);
+            double dblScale = await ScalePlots(RoseArray, ExtentWidth, ExtentHeight);
             double ScaleFactor = dblScale;
 
             for (int i = 0; i < RoseArray.Count; i++)
@@ -225,11 +238,13 @@ namespace Linear_Engine
                 RoseArrayBin[j, 2] = Math.Sin(dblBetaRad) * RoseArray[j];  //x3
                 RoseArrayBin[j, 3] = Math.Cos(dblBetaRad) * RoseArray[j];  //y3
             }
+
+            return true;
         }
 
 
 
-        private double ScalePlots(List<double> RoseArray, double ExtentWidth, double ExtentHeight)
+        private async Task<double> ScalePlots(List<double> RoseArray, double ExtentWidth, double ExtentHeight)
         {
             double dblLength = RoseArray.Max(); //greatest length
 

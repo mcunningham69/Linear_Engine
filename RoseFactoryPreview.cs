@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -92,7 +94,6 @@ namespace Linear_Engine
 
     public class RoseCellPlots : TypeOfAnalysis
     {
-
         public override async Task<FlapParameters> PrepareInputForProcessing(List<LinearValues> orientValues, CellExtent customEnvelope, int subCellsize,
     int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional, string fieldName, RoseType roseType, RoseGeom roseGeom)
         {
@@ -127,28 +128,24 @@ namespace Linear_Engine
             {
                 for (int x = 0; x < subCellsRose.NoOfColumns; x++)
                 {
-                    CellExtent localExtent = new CellExtent{
-                        MinX = dblMinX,
-                        MinY = dblMinY,
-                        MaxX = dblMaxX,
-                        MaxY =  dblMaxY,
-                        CellWidth = subCellsize,
-                        CellHeight = subCellsize,
-                        CellArea = subCellsize * subCellsize
-                    };
 
-            subCellsRose.flapParameters.Add(new FlapParameter
+                    dblCentreX = dblMinX + ((dblMaxX - dblMinX) / 2);
+                    dblCentreY = dblMinY + ((dblMaxY - dblMinY) / 2);
+
+                    subCellsRose.flapParameters.Add(new FlapParameter
                     {
-                        CentreX = dblCentreX,
-                        CentreY = dblCentreY,
-                        CreateCell = true,  //default
-                        ExtentArea = subCellsize * subCellsize,
-                        ExtentHeight = subCellsize,
-                        ExtentWidth = subCellsize,
-                        XMin = dblMinX,
-                        XMax = dblMaxX,
-                        YMin = dblMinY,
-                        YMax = dblMaxY,
+                        RoseExtent = new CellExtent
+                        {
+                            MinX = dblMinX,
+                            MinY = dblMinY,
+                            MaxX = dblMaxX,
+                            MaxY = dblMaxY,
+                            CellWidth = subCellsize,
+                            CellHeight = subCellsize,
+                            CellArea = subCellsize * subCellsize,
+                            CentreX = dblCentreX,
+                            CentreY = dblCentreY
+                        },
                         CellID = cellID
 
                     });
@@ -158,7 +155,7 @@ namespace Linear_Engine
                     int featCount = 0;
 
                     //Query within extent
-                    List<LinearValues> subSelValues = await ReturnPointFeautresWithinExtent(localExtent, orientValues);
+                    List<LinearValues> subSelValues = await ReturnPointFeautresWithinExtent(subCellsRose.flapParameters.Last().RoseExtent, orientValues);
                     featCount = subSelValues.Count;
 
                     if (featCount > 0)
@@ -166,7 +163,7 @@ namespace Linear_Engine
                         subCellsRose.flapParameters.Last().CreateCell = true;
                         subCellsRose.flapParameters.Last().Count = featCount;
 
-                        await PopulateAziLenArray(roseType, orientValues, subCellsRose.flapParameters.Last());
+                        await PopulateAziLenArray(roseType, subSelValues, subCellsRose.flapParameters.Last());
                     }
                     else
                     {
@@ -226,44 +223,94 @@ namespace Linear_Engine
 
         }
 
-        private async Task<List<LinearValues>>ReturnPointFeautresWithinExtent(CellExtent cell, List<LinearValues> orientValues)
+        private async Task<List<LinearValues>> ReturnPointFeautresWithinExtent(CellExtent cell, List<LinearValues> orientValues)
         {
-            List<LinearValues> cellResults = orientValues.Where(a => a.startX > cell.MinX).Where(b => b.endX < cell.MaxX)
-                .Where(c => c.startY < cell.MaxY).Where(d => d.endY > cell.MinY)
-                .Select(b => new LinearValues()
-                {
-                    startX = b.startX,
-                    startY = b.startY,
-                    endX = b.endX,
-                    endY = b.endY,
-                    Direction = b.Direction
-                }).ToList();
+            List<LinearValues> cellResults = orientValues.Where(a => a.startX >= cell.MinX && a.startX <= cell.MaxX
+           && a.startY <= cell.MaxY && a.startY >= cell.MinY)
+   .Select(b => new LinearValues()
+   {
+        startX = b.startX,
+        startY = b.startY,
+        Direction = b.Direction
+    }).ToList();
 
+            var minx1 = orientValues.Select(a => a.startX).Min();
+            var miny1 = orientValues.Select(a => a.startY).Min();
+            var maxx1 = orientValues.Select(a => a.startX).Max();
+            var maxy1 = orientValues.Select(a => a.startX).Max();
+
+            if (cellResults.Count > 0)
+            {
+                var minx = cellResults.Select(a => a.startX).Min();
+                var miny = cellResults.Select(a => a.startY).Min();
+                var maxx = cellResults.Select(a => a.startX).Max();
+                var maxy = cellResults.Select(a => a.startY).Max();
+            }
 
             return cellResults;
         }
 
         public override async Task<bool> CalculateValues(FlapParameters _parameters)
         {
-            foreach (FlapParameter parameter in _parameters.flapParameters)
-            {
-                if (parameter.CreateCell)
-                {
-                    if (parameter.LenAzi.Count > 0)
-                    {
-                        parameter.FishStats = new FishnetStatistics();
+            int NoOfElements = 180 / _parameters.Interval;
 
-                        parameter.FishStats.CalculateFishnetStatistics(parameter.LenAzi);
-                    }
+            RoseType roseType = _parameters._RoseType;
+            bool bStats = _parameters.SaveStatistics;
+            bool bBearing = _parameters.Bearing;
+            int nInterval = _parameters.Interval;
+
+            var createCells = _parameters.flapParameters.Where(a => a.CreateCell).Select(b => b).ToList();
+
+            foreach(var cell in createCells)
+            {
+                if (cell.LenAzi.Count > 0)
+                {
+                    cell.FishStats = new FishnetStatistics();
+                    cell.FishStats.CalculateFishnetStatistics(cell.LenAzi, roseType, cell);
+
+                    cell.Rose = new RoseDiagramParameters();
+
+                    await cell.Rose.RoseArrayValues(bBearing, NoOfElements, nInterval, cell.LenAzi, roseType);
+                    await cell.Rose.CalculateRosePetals(nInterval, cell.RoseExtent.CellWidth, cell.RoseExtent.CellHeight);
+
+                    if (bStats)
+                        await cell.Rose.CalculateRoseStatistics(cell.LenAzi, _parameters.Interval, _parameters.Bearing);
                 }
             }
-
             return true;
         }
 
         public override async Task<string> SaveFeatures(FlapParameters _parameters)
         {
-            return await SaveFeatures(_parameters);
+            string message = String.Empty;
+
+            var createCells = _parameters.flapParameters.Where(a => a.CreateCell).Select(b => b).ToList();
+
+            foreach (var cell in createCells)
+            {
+                cell.Rose.petals = new List<RosePetalCoordinates>();
+
+                if (cell.LenAzi.Count > 0)
+                {
+                    int counter = cell.Rose.RoseArrayBin.GetUpperBound(0);
+
+                    for (int i = 0; i < counter + 1; i++)
+                    {
+                        cell.Rose.petals.Add(new RosePetalCoordinates()
+                        {
+                            PetalID = i,
+                            OriginX = cell.RoseExtent.CentreX,
+                            OriginY = cell.RoseExtent.CentreY,
+                            x1 = cell.Rose.RoseArrayBin[i, 0] + cell.RoseExtent.CentreX,
+                            y1 = cell.Rose.RoseArrayBin[i, 1] + cell.RoseExtent.CentreY,
+                            x2 = cell.Rose.RoseArrayBin[i, 2] + cell.RoseExtent.CentreX,
+                            y2 = cell.Rose.RoseArrayBin[i, 3] + cell.RoseExtent.CentreY
+                        });
+                    }
+                }
+            }
+
+            return message;
         }
     }
 
@@ -326,19 +373,11 @@ int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional
 
             regionalRose.flapParameters.Add(new FlapParameter
             {
-                CentreX = customEnvelope.CentreX,
-                CentreY = customEnvelope.CentreY,
+                RoseExtent = customEnvelope,
                 CreateCell = true,  //default
-                ExtentArea = customEnvelope.CellArea,
-                ExtentHeight = customEnvelope.CellHeight,
-                ExtentWidth = customEnvelope.CellWidth,
-                XMin = customEnvelope.MinX,
-                XMax = customEnvelope.MaxX,
-                YMin = customEnvelope.MinY,
-                YMax = customEnvelope.MaxY,
                 CellID = cellID,
                 Rose = rose
-            });
+            }) ;
 
             if (regionalRose._RoseType == RoseType.Frequency)
             {
@@ -385,12 +424,15 @@ int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional
             {
                 parameter.Rose = parameter.Rose;// new RoseDiagramParameters();
 
-                parameter.Rose.RoseArrayValues(bBearing, NoOfElements, nInterval, parameter.LenAzi, roseType);
+                await parameter.Rose.RoseArrayValues(bBearing, NoOfElements, nInterval, parameter.LenAzi, roseType);
 
-                parameter.Rose.CalculateRosePetals(nInterval, parameter.ExtentWidth, parameter.ExtentHeight);
+                await parameter.Rose.CalculateRosePetals(nInterval, parameter.RoseExtent.CellWidth, parameter.RoseExtent.CellHeight);
 
                 if (bStats)
-                    parameter.Rose.CalculateRoseStatistics(parameter.LenAzi, _parameters.Interval);
+                    await parameter.Rose.CalculateRoseStatistics(parameter.LenAzi, _parameters.Interval, _parameters.Bearing);
+
+                parameter.FishStats = new FishnetStatistics();
+                parameter.FishStats.CalculateFishnetStatistics(parameter.LenAzi, roseType, parameter);
             }
 
             return true;
@@ -415,76 +457,13 @@ int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional
                             parameter.Rose.petals.Add(new RosePetalCoordinates()
                             {
                                 PetalID = i,
-                                OriginX = parameter.CentreX,
-                                OriginY = parameter.CentreY,
-                                x1 = parameter.Rose.RoseArrayBin[i, 0] + parameter.CentreX,
-                                y1 = parameter.Rose.RoseArrayBin[i, 1] + parameter.CentreY,
-                                x2 = parameter.Rose.RoseArrayBin[i, 2] + parameter.CentreX,
-                                y2 = parameter.Rose.RoseArrayBin[i, 3] + parameter.CentreY
+                                OriginX = parameter.RoseExtent.CentreX,
+                                OriginY = parameter.RoseExtent.CentreY,
+                                x1 = parameter.Rose.RoseArrayBin[i, 0] + parameter.RoseExtent.CentreX,
+                                y1 = parameter.Rose.RoseArrayBin[i, 1] + parameter.RoseExtent.CentreY,
+                                x2 = parameter.Rose.RoseArrayBin[i, 2] + parameter.RoseExtent.CentreX,
+                                y2 = parameter.Rose.RoseArrayBin[i, 3] + parameter.RoseExtent.CentreY
                             });
-
-                            //TODO - for statistics
-                                /*
-                                 * 
-                                // use the builder constructor
-                                Polygon poly = null;
-                                using (PolygonBuilder pb = new PolygonBuilder(list))
-                                {
-                                    pb.SpatialReference = mySpatialRef;
-                                    poly = pb.ToGeometry();
-                                    rowBuffer[_definition.GetShapeField()] = poly;
-                                }
-                                int checkField = -1;
-
-                                checkField = _definition.FindField("CellID");
-                                if (checkField > -1)
-                                    rowBuffer["CellID"] = parameter.CellID;
-
-                                checkField = _definition.FindField("AvgAzi");
-                                if (checkField > -1)
-                                    rowBuffer["AvgAzi"] = parameter.Rose.AvgAzi[i];
-
-                                checkField = _definition.FindField("MinAzi");
-                                if (checkField > -1)
-                                    rowBuffer["MinAzi"] = parameter.Rose.MinAzi[i];
-
-                                checkField = _definition.FindField("MaxAzi");
-                                if (checkField > -1)
-                                    rowBuffer["MaxAzi"] = parameter.Rose.MaxAzi[i];
-
-                                checkField = _definition.FindField("StdAzi");
-                                if (checkField > -1)
-                                    rowBuffer["StdAzi"] = parameter.Rose.StdAzi[i];
-
-                                checkField = _definition.FindField("BinCount");
-                                if (checkField > -1)
-                                    rowBuffer["BinCount"] = parameter.Rose.BinCount[i];
-
-                                checkField = _definition.FindField("BinAzi");
-                                if (checkField > -1)
-                                    rowBuffer["BinAzi"] = parameter.Rose.BinRange[i].LowerRange.ToString() + " - " + parameter.Rose.BinRange[i].UpperRange.ToString();
-
-
-                                checkField = _definition.FindField("AvgLength");
-                                if (checkField > -1)
-                                    rowBuffer["AvgLength"] = parameter.Rose.AvgLength[i];
-
-                                checkField = _definition.FindField("MinLength");
-                                if (checkField > -1)
-                                    rowBuffer["MinLength"] = parameter.Rose.MinLength[i];
-
-                                checkField = _definition.FindField("MaxLength");
-                                if (checkField > -1)
-                                    rowBuffer["MaxLength"] = parameter.Rose.MaxLength[i];
-
-                                checkField = _definition.FindField("StdLen");
-                                if (checkField > -1)
-                                    rowBuffer["StdLen"] = parameter.Rose.StdLength[i];
-
-                                checkField = _definition.FindField("Created");
-                                if (checkField > -1)
-                                    rowBuffer["Created"] = "Created on: " + DateTime.Now.ToShortDateString() + " at: " + DateTime.Now.ToShortTimeString();
-                                */
 
                         }
                     }

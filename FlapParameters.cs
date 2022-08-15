@@ -73,15 +73,16 @@ namespace Linear_Engine
         public double SumValue { get; set; }
         public double StdValue { get; set; }
         public double AdjustedValue { get; set; } //adjusted gridvalue
-        public double ExtentHeight { get; set; }
-        public double ExtentWidth { get; set; }
-        public double ExtentArea { get; set; }
-        public double CentreX { get; set; }
-        public double CentreY { get; set; }
-        public double XMin { get; set; }
-        public double XMax { get; set; }
-        public double YMin { get; set; }
-        public double YMax { get; set; }
+        public CellExtent RoseExtent { get; set; }
+        //public double ExtentHeight { get; set; }
+        //public double ExtentWidth { get; set; }
+        //public double ExtentArea { get; set; }
+        //public double CentreX { get; set; }
+        //public double CentreY { get; set; }
+        //public double XMin { get; set; }
+        //public double XMax { get; set; }
+        //public double YMin { get; set; }
+        //public double YMax { get; set; }
         public bool CreateCell { get; set; }
         public FishnetStatistics FishStats { get; set; }
         public RoseDiagramParameters Rose { get; set; }
