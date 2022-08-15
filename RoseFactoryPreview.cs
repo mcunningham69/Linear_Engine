@@ -409,7 +409,6 @@ int nInterval, bool selectedFeatures, RoseDiagramParameters rose, bool bRegional
 
         public override async Task<bool> CalculateValues(FlapParameters _parameters)
         {
-
             int NoOfElements = 180 / _parameters.Interval;
 
             RoseType roseType = _parameters._RoseType;
