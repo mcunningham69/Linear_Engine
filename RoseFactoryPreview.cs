@@ -299,7 +299,7 @@ namespace Linear_Engine
             {
                 foreach (LinearValues value in startResults)
                 {
-                    List<double> tempCoord = await ReturnCoordinate(value.startX, value.startY, value.Direction, cell);
+                    List<double> tempCoord = await ReturnCoordinates(value.startX, value.startY, value.Direction, cell);
 
                     //recalculate new length
                     double dblLength = await value.CalcLength();
@@ -321,7 +321,7 @@ namespace Linear_Engine
             {
                 foreach (LinearValues value in endResults)
                 {
-                    List<double> tempCoord = await ReturnCoordinate(value.endX, value.endY, value.Direction, cell);
+                    List<double> tempCoord = await ReturnCoordinates(value.endX, value.endY, value.Direction, cell);
 
                     //recalculate new length
                     double dblLength = await value.CalcLength();
@@ -342,11 +342,9 @@ namespace Linear_Engine
             return cellResults;
         }
 
-        private async Task<List<double>>ReturnCoordinate(double dblX, double dblY, double dblDirection, CellExtent extent )
+        private async Task<List<double>> ReturnCoordinates(double dblX, double dblY, double dblDirection, CellExtent extent)
         {
             double dblRadAzimuth = (Math.PI / 180) * dblDirection;  //Convert to radians
-            double dblChangeX = 0.0;
-            double dblChangeY = 0.0;
 
             List<double> dblCoords = new List<double>();
 
@@ -356,7 +354,7 @@ namespace Linear_Engine
 
             switch (dblDirection)
             {
-                case <=90.0:
+                case <= 90.0:
                     if (nDirection == 0) //Northing Max
                     {
                         dblCoords.Add(dblX);
@@ -364,45 +362,10 @@ namespace Linear_Engine
                     }
                     else //MaxX and MaxY
                     {
-                        int chgXDist = 10;
-                        int chgYDist = 10; //Can set this as a precision value
-
-                        //find X max distance
-                        do
-                        {
-                            double x1 = chgXDist * Math.Sin(dblRadAzimuth);
-
-                        } while (chgXDist <= extent.MaxX);
-
-                        //find X max distance
-                        do
-                        {
-                            double y1 = chgYDist * Math.Cos(dblRadAzimuth);
-
-                        } while (chgYDist <= extent.MaxY);
-
-                        if (chgXDist <= chgYDist)
-                        {
-                            dblChangeX = chgXDist;
-                            
-                        }
-                        else
-                        {
-                            dblChangeY = chgYDist;
-                        }
-
-                        if (dblChangeX > 0.0)
-                        {
-                            dblCoords.Add(extent.MaxX);
-                            dblCoords.Add(dblChangeX * Math.Cos(dblRadAzimuth));
-                        }
-                        else
-                        {
-                            dblCoords.Add(dblChangeY * Math.Sin(dblRadAzimuth));
-                            dblCoords.Add(extent.MaxY);
-                        }
+                        dblCoords = await ReturnCoordinateNE(dblRadAzimuth, extent.MaxX, extent.MaxY, 10);
                     }
                     break;
+
                 case < 180.0:
                     if (nDirection == 90)  //Easting Max
                     {
@@ -411,26 +374,25 @@ namespace Linear_Engine
                     }
                     else //MaxX and MinY
                     {
-
+                        dblCoords = await ReturnCoordinateNE(dblRadAzimuth, extent.MaxX, extent.MinY, 10);
                     }
                     break;
 
                 case < 270.0:
-                    if (nDirection==180) //Easting Min
+                    if (nDirection == 180) //Easting Min
                     {
                         dblCoords.Add(dblX);
                         dblCoords.Add(extent.MinY);
                     }
                     else //MinX and MinY
                     {
-
+                        dblCoords = await ReturnCoordinateNE(dblRadAzimuth, extent.MinX, extent.MinY, 10);
                     }
                     break;
 
                 case <= 360.0:
                     if (nDirection == 270) //Northing Min
                     {
-
                         dblCoords.Add(extent.MinX);
                         dblCoords.Add(dblY);
 
@@ -442,7 +404,7 @@ namespace Linear_Engine
                     }
                     else //MinX and MaxY
                     {
-
+                        dblCoords = await ReturnCoordinateNE(dblRadAzimuth, extent.MinX, extent.MaxY, 10);
                     }
 
                     break;
@@ -454,6 +416,201 @@ namespace Linear_Engine
 
             return dblCoords;
         }
+
+
+        #region Return coordiantes based on quadrant
+        private async Task<List<double>> ReturnCoordinateNE(double dblRadAzimuth, double MaxX, double MaxY, int nRes)
+        {
+            List<double> dblCoords = new List<double>();
+
+            int chgXDist = nRes;
+            int chgYDist = nRes; //Can set this as a precision value
+
+            double dblChangeX = 0.0;
+            double dblChangeY = 0.0;
+
+            //find X max distance
+            do
+            {
+                double x1 = chgXDist * Math.Sin(dblRadAzimuth);
+
+            } while (chgXDist <= MaxX);
+
+            //find X max distance
+            do
+            {
+                double y1 = chgYDist * Math.Cos(dblRadAzimuth);
+
+            } while (chgYDist <= MaxY);
+
+            if (chgXDist <= chgYDist)
+            {
+                dblChangeX = chgXDist;
+
+            }
+            else
+            {
+                dblChangeY = chgYDist;
+            }
+
+            if (dblChangeX > 0.0)
+            {
+                dblCoords.Add(MaxX);
+                dblCoords.Add(dblChangeX * Math.Cos(dblRadAzimuth));
+            }
+            else
+            {
+                dblCoords.Add(dblChangeY * Math.Sin(dblRadAzimuth));
+                dblCoords.Add(MaxY);
+            }
+            return dblCoords;
+
+        }
+
+        private async Task<List<double>> ReturnCoordinateSE(double dblRadAzimuth, double MaxX, double MinY, int nRes)
+        {
+            List<double> dblCoords = new List<double>();
+
+            int chgXDist = nRes;
+            int chgYDist = nRes; //Can set this as a precision value
+
+            double dblChangeX = 0.0;
+            double dblChangeY = 0.0;
+
+            //find X max distance
+            do
+            {
+                double x1 = chgXDist * Math.Sin(dblRadAzimuth);
+
+            } while (chgXDist <= MaxX);
+
+            //find X max distance
+            do
+            {
+                double y1 = chgYDist * Math.Cos(dblRadAzimuth);
+
+            } while (chgYDist <= MinY);
+
+            if (chgXDist <= chgYDist)
+            {
+                dblChangeX = chgXDist;
+
+            }
+            else
+            {
+                dblChangeY = chgYDist;
+            }
+
+            if (dblChangeX > 0.0)
+            {
+                dblCoords.Add(MaxX);
+                dblCoords.Add(dblChangeX * Math.Cos(dblRadAzimuth));
+            }
+            else
+            {
+                dblCoords.Add(dblChangeY * Math.Sin(dblRadAzimuth));
+                dblCoords.Add(MinY);
+            }
+            return dblCoords;
+
+        }
+
+        private async Task<List<double>> ReturnCoordinateSW(double dblRadAzimuth, double MinX, double MinY, int nRes)
+        {
+            List<double> dblCoords = new List<double>();
+
+            int chgXDist = nRes;
+            int chgYDist = nRes; //Can set this as a precision value
+
+            double dblChangeX = 0.0;
+            double dblChangeY = 0.0;
+
+            //find X max distance
+            do
+            {
+                double x1 = chgXDist * Math.Sin(dblRadAzimuth);
+
+            } while (chgXDist <= MinX);
+
+            //find X max distance
+            do
+            {
+                double y1 = chgYDist * Math.Cos(dblRadAzimuth);
+
+            } while (chgYDist <= MinY);
+
+            if (chgXDist <= chgYDist)
+            {
+                dblChangeX = chgXDist;
+
+            }
+            else
+            {
+                dblChangeY = chgYDist;
+            }
+
+            if (dblChangeX > 0.0)
+            {
+                dblCoords.Add(MinX);
+                dblCoords.Add(dblChangeX * Math.Cos(dblRadAzimuth));
+            }
+            else
+            {
+                dblCoords.Add(dblChangeY * Math.Sin(dblRadAzimuth));
+                dblCoords.Add(MinY);
+            }
+            return dblCoords;
+        }
+
+        private async Task<List<double>> ReturnCoordinateNW(double dblRadAzimuth, double MinX, double MaxY, int nRes)
+        {
+            List<double> dblCoords = new List<double>();
+
+            int chgXDist = nRes;
+            int chgYDist = nRes; //Can set this as a precision value
+
+            double dblChangeX = 0.0;
+            double dblChangeY = 0.0;
+
+            //find X max distance
+            do
+            {
+                double x1 = chgXDist * Math.Sin(dblRadAzimuth);
+
+            } while (chgXDist <= MinX);
+
+            //find X max distance
+            do
+            {
+                double y1 = chgYDist * Math.Cos(dblRadAzimuth);
+
+            } while (chgYDist <= MaxY);
+
+            if (chgXDist <= chgYDist)
+            {
+                dblChangeX = chgXDist;
+
+            }
+            else
+            {
+                dblChangeY = chgYDist;
+            }
+
+            if (dblChangeX > 0.0)
+            {
+                dblCoords.Add(MinX);
+                dblCoords.Add(dblChangeX * Math.Cos(dblRadAzimuth));
+            }
+            else
+            {
+                dblCoords.Add(dblChangeY * Math.Sin(dblRadAzimuth));
+                dblCoords.Add(MaxY);
+            }
+            return dblCoords;
+        }
+
+        #endregion
+
 
         public override async Task<bool> CalculateValues(FlapParameters _parameters)
         {
