@@ -30,7 +30,7 @@ namespace Linear_Engine
         }
 
         //return orientation between two points
-        public double CalcOrient()
+        public async Task<double> CalcOrient()
         {
             double dblStartX = startX;
             double dblStartY = startY;
@@ -62,7 +62,7 @@ namespace Linear_Engine
         }
    
         //return length between two points
-        public double CalcLength()
+        public async Task<double> CalcLength()
         {
             double dblStartX = startX;
             double dblStartY = startY;

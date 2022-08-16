@@ -9,7 +9,7 @@ namespace Linear_Engine
 {
     public static class SaveRoseToFile
     {
-        public static async void SaveRoseAsCSV(string outputFilename, List<FlapParameter> parameters, bool bCSV, string metadata)
+        public static async void SaveRoseAsCSV(string outputFilename, List<FlapParameter> parameters, bool bCSV, string metadata, bool bStatistics, bool bLength)
         {
             char delimiter = '\t';
 
@@ -21,19 +21,21 @@ namespace Linear_Engine
             using StreamWriter sw = new(outputFilename, append: true);
             await sw.WriteLineAsync(metadata);
 
-            string header = "RoseID, PetalID, OriginX, OriginY, X1, Y1, X2, Y2";
+            string header = "index, RoseID, PetalID, OriginX, OriginY, X1, Y1, X2, Y2";
 
             await sw.WriteLineAsync(header);
 
             var createCells = parameters.Where(a => a.CreateCell).Select(b => b).ToList();
             int counter = 0;
+            int index = 0;
 
             foreach (FlapParameter parameter in createCells)
             {
                 counter = 0;
                 foreach (RosePetalCoordinates coordinates in parameter.Rose.petals)
                 {
-                    string line = parameter.CellID.ToString() + ", " +
+                    string line = index.ToString() + ", " +
+                    parameter.CellID.ToString() + ", " +
                     coordinates.PetalID.ToString() + ", " +
                     coordinates.OriginX.ToString() + ", " +
                     coordinates.OriginY.ToString() + ", " +
@@ -42,11 +44,27 @@ namespace Linear_Engine
                     coordinates.x2.ToString() + ", " +
                     coordinates.y2.ToString();
 
+                    if (bStatistics)
+                    {
+                        line = line + ", " + parameter.Rose.BinCount[counter].ToString() + ", " +
+                        parameter.Rose.AvgAzi[counter].ToString() + ", " +
+                        parameter.Rose.StdAzi[counter].ToString();
+
+                        if (bLength)
+                        {
+                            line = line + ", " + parameter.Rose.AvgLength[counter] + ", " +
+                            parameter.Rose.StdLength[counter].ToString();
+                        }
+                    }
+
                     counter++;
+                    index++;
 
                     await sw.WriteLineAsync(line);
 
                 }
+
+                counter++;
 
             }
 
@@ -69,8 +87,9 @@ namespace Linear_Engine
             using StreamWriter sw = new(fishname, append: true);
 
             bool bLine = false;
+            int index = 0;
 
-            string header = "RoseID, X1, Y1, X2, Y2, X3, Y3, X4, Y4, Count, Average DIR, Std Dev. DIR";
+            string header = "index, RoseID, X1, Y1, X2, Y2, X3, Y3, X4, Y4, Count, Average DIR, Std Dev. DIR";
 
             if (bLength)
                 header = header + ", Average LEN, Std Dev. LEN";
@@ -82,7 +101,8 @@ namespace Linear_Engine
 
             foreach (FlapParameter parameter in createCells)
             {
-                string line = parameter.CellID.ToString() + ", " +
+                string line = index.ToString() + ", " +
+                parameter.CellID.ToString() + ", " +
                 parameter.RoseExtent.MinX.ToString() + ", " +
                 parameter.RoseExtent.MinY.ToString() + ", " +
                 parameter.RoseExtent.MinX.ToString() + ", " +
@@ -101,6 +121,7 @@ namespace Linear_Engine
                          parameter.FishStats.LenStd.ToString();
                 }
 
+                index++;
                 await sw.WriteLineAsync(line);
 
             }
@@ -127,33 +148,42 @@ namespace Linear_Engine
 
             string header = "RoseID, Bin, Count, Average DIR, Std Dev. DIR";
 
-                if (bLength)
-                    header = header + ", Average LEN, Std Dev. LEN";
+            if (bLength)
+                header = header + ", Average LEN, Std Dev. LEN";
 
 
             await sw.WriteLineAsync(header);
+
+            int counter = 0;
 
             var createCells = parameters.Where(a => a.CreateCell).Select(b => b).ToList();
 
             foreach (FlapParameter parameter in createCells)
             {
-                string line = parameter.CellID.ToString() + ", " +
-                parameter.FishStats.Count.ToString() + ", " +
-                parameter.FishStats.AziAvg.ToString() + ", " +
-                parameter.FishStats.AziStd.ToString();
+                counter = 0;
 
-                if (bLength)
+                foreach (RosePetalCoordinates coordinates in parameter.Rose.petals)
                 {
-                    line = line + ", " + parameter.FishStats.LenAvg + ", " +
-                         parameter.FishStats.LenStd.ToString();
-                }
+                    string line = parameter.CellID.ToString() + ", " +
+                    parameter.Rose.BinCount[counter].ToString() + ", " +
+                    parameter.Rose.AvgAzi[counter].ToString() + ", " +
+                    parameter.Rose.StdAzi[counter].ToString();
 
-                await sw.WriteLineAsync(line);
+                    if (bLength)
+                    {
+                        line = line + ", " + parameter.Rose.AvgLength[counter] + ", " +
+                                 parameter.Rose.StdLength[counter].ToString();
+                    }
+
+                    counter++;
+
+                    await sw.WriteLineAsync(line);
+
+                }
 
             }
 
         }
-
 
     }
 }

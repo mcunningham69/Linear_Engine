@@ -124,11 +124,20 @@ namespace Linear_Engine
             double dblCentreX = dblMinX + ((dblMaxX - dblMinX) / 2);
             double dblCentreY = dblMinY + ((dblMaxY - dblMinY) / 2);
 
+            //Recalculate orientation and length for lines
+            if (roseGeom == RoseGeom.Line)
+            {
+                foreach (LinearValues value in orientValues)
+                {
+                    await value.CalcOrient();
+                    await value.CalcLength();
+                }
+            }
+
             for (int y = 0; y < subCellsRose.NoOfRows; y++)
             {
                 for (int x = 0; x < subCellsRose.NoOfColumns; x++)
                 {
-
                     dblCentreX = dblMinX + ((dblMaxX - dblMinX) / 2);
                     dblCentreY = dblMinY + ((dblMaxY - dblMinY) / 2);
 
@@ -155,7 +164,15 @@ namespace Linear_Engine
                     int featCount = 0;
 
                     //Query within extent
-                    List<LinearValues> subSelValues = await ReturnPointFeautresWithinExtent(subCellsRose.flapParameters.Last().RoseExtent, orientValues);
+                    List<LinearValues> subSelValues = new List<LinearValues>();
+
+                    if (subCellsRose._RoseGeom == RoseGeom.Point)
+                        subSelValues = await ReturnPointFeautresWithinExtent(subCellsRose.flapParameters.Last().RoseExtent, orientValues);
+                    else
+                    {
+                        subSelValues = await ReturnLineFeautresWithinExtent(subCellsRose.flapParameters.Last().RoseExtent, orientValues);
+                    }
+
                     featCount = subSelValues.Count;
 
                     if (featCount > 0)
@@ -248,6 +265,194 @@ namespace Linear_Engine
             }
 
             return cellResults;
+        }
+
+        private async Task<List<LinearValues>> ReturnLineFeautresWithinExtent(CellExtent cell, List<LinearValues> orientValues)
+        {
+            List<LinearValues> containedResults = orientValues.Where(a => a.startX >= cell.MinX && a.startX <= cell.MaxX
+        && a.startY <= cell.MaxY && a.startY >= cell.MinY && a.endX >= cell.MinX && a.endX <= cell.MaxX
+        && a.endY <= cell.MaxY && a.endY >= cell.MinY)
+.Select(b => b).ToList();
+
+            List<LinearValues> startResults = orientValues.Where(a => a.startX >= cell.MinX && a.startX <= cell.MaxX
+                    && a.startY <= cell.MaxY && a.startY >= cell.MinY)
+.Select(b => b).ToList();
+
+            List<LinearValues> endResults = orientValues.Where(a => a.endX >= cell.MinX && a.endX <= cell.MaxX
+                    && a.endY <= cell.MaxY && a.endY >= cell.MinY)
+.Select(b => b).ToList();
+
+            //New list to contain results
+            List<LinearValues> cellResults = new List<LinearValues>();
+
+            //if containedResults, then line completely within extent and nothing more needs to be done.
+            if (containedResults.Count > 0)
+            {
+                foreach (LinearValues value in containedResults)
+                {
+                    cellResults.Add(value);
+                }
+            }
+
+            //if start coordinate exists but no end, calculate end coordinate from direction and distance to boundary
+            if (startResults.Count > 0)
+            {
+                foreach (LinearValues value in startResults)
+                {
+                    List<double> tempCoord = await ReturnCoordinate(value.startX, value.startY, value.Direction, cell);
+
+                    //recalculate new length
+                    double dblLength = await value.CalcLength();
+
+                    cellResults.Add(new LinearValues
+                    {
+                        startX = value.startX,
+                        startY = value.startY,
+                        Direction = value.Direction,
+                        LineLength = dblLength,
+                        endX = tempCoord[0],
+                        endY = tempCoord[1]
+                    }); 
+                }
+            }
+
+            //if end coordinate exists but no start, calculate start coordinate from direction and distance to boundary
+            if (endResults.Count > 0)
+            {
+                foreach (LinearValues value in endResults)
+                {
+                    List<double> tempCoord = await ReturnCoordinate(value.endX, value.endY, value.Direction, cell);
+
+                    //recalculate new length
+                    double dblLength = await value.CalcLength();
+
+                    cellResults.Add(new LinearValues
+                    {
+                        startX = tempCoord[0],
+                        startY = tempCoord[1],
+                        Direction = value.Direction,
+                        LineLength = dblLength,
+                        endX = value.endX,
+                        endY = value.endY
+                    });
+
+                }
+            }
+
+            return cellResults;
+        }
+
+        private async Task<List<double>>ReturnCoordinate(double dblX, double dblY, double dblDirection, CellExtent extent )
+        {
+            double dblRadAzimuth = (Math.PI / 180) * dblDirection;  //Convert to radians
+            double dblChangeX = 0.0;
+            double dblChangeY = 0.0;
+
+            List<double> dblCoords = new List<double>();
+
+            LinearValues coordinate = new LinearValues();
+
+            int nDirection = Convert.ToInt32(Math.Abs(dblDirection));
+
+            switch (dblDirection)
+            {
+                case <=90.0:
+                    if (nDirection == 0) //Northing Max
+                    {
+                        dblCoords.Add(dblX);
+                        dblCoords.Add(extent.MaxY);
+                    }
+                    else //MaxX and MaxY
+                    {
+                        int chgXDist = 10;
+                        int chgYDist = 10; //Can set this as a precision value
+
+                        //find X max distance
+                        do
+                        {
+                            double x1 = chgXDist * Math.Sin(dblRadAzimuth);
+
+                        } while (chgXDist <= extent.MaxX);
+
+                        //find X max distance
+                        do
+                        {
+                            double y1 = chgYDist * Math.Cos(dblRadAzimuth);
+
+                        } while (chgYDist <= extent.MaxY);
+
+                        if (chgXDist <= chgYDist)
+                        {
+                            dblChangeX = chgXDist;
+                            
+                        }
+                        else
+                        {
+                            dblChangeY = chgYDist;
+                        }
+
+                        if (dblChangeX > 0.0)
+                        {
+                            dblCoords.Add(extent.MaxX);
+                            dblCoords.Add(dblChangeX * Math.Cos(dblRadAzimuth));
+                        }
+                        else
+                        {
+                            dblCoords.Add(dblChangeY * Math.Sin(dblRadAzimuth));
+                            dblCoords.Add(extent.MaxY);
+                        }
+                    }
+                    break;
+                case < 180.0:
+                    if (nDirection == 90)  //Easting Max
+                    {
+                        dblCoords.Add(extent.MaxX);
+                        dblCoords.Add(dblY);
+                    }
+                    else //MaxX and MinY
+                    {
+
+                    }
+                    break;
+
+                case < 270.0:
+                    if (nDirection==180) //Easting Min
+                    {
+                        dblCoords.Add(dblX);
+                        dblCoords.Add(extent.MinY);
+                    }
+                    else //MinX and MinY
+                    {
+
+                    }
+                    break;
+
+                case <= 360.0:
+                    if (nDirection == 270) //Northing Min
+                    {
+
+                        dblCoords.Add(extent.MinX);
+                        dblCoords.Add(dblY);
+
+                    }
+                    else if (nDirection == 360)
+                    {
+                        dblCoords.Add(dblX);
+                        dblCoords.Add(extent.MaxY);
+                    }
+                    else //MinX and MaxY
+                    {
+
+                    }
+
+                    break;
+
+
+                default:
+                    throw new Exception("Problem with direction out of bounds");
+            }
+
+            return dblCoords;
         }
 
         public override async Task<bool> CalculateValues(FlapParameters _parameters)
